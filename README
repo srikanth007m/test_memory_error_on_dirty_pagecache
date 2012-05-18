@@ -1,0 +1,8 @@
+make test4
+Confirm that current kernel has a problem where dirty pagecache
+is discarded without being known by parent who reread data from hdd.
+ - prepare a text file (written '0' in the initial state)
+ - fork
+ - parent process open the file and dirty it (write '1')
+ - child process open and mmap the file and inject hwpoison
+ - parent check the file content with read()
