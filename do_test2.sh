@@ -10,16 +10,17 @@
 tmpf=`mktemp`
 fail=0
 
-[ $# -ne 2 ] && echo "Usage: `dirname $BASH_SOURCE` file nrpages" && exit 1
+[ $# -ne 3 ] && echo "Usage: `dirname $BASH_SOURCE` file nrpages access" && exit 1
 
 testf=$1
 nrpages=$2
+access=$3
 
 echo "Prepare a text file (filled with 0)"
 ruby -e 'puts "0"*8192' > $testf
 
 ./simple_open $testf &
-./test $testf 1 ${nrpages}
+./test $testf $access $nrpages
 ret=$?
 [ $ret -eq 0 ] && fail=$((fail + 1)) && \
     echo "FAIL ($ret): parent silently discarded the dirty pagecache" 
