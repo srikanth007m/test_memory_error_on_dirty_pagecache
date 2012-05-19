@@ -1,5 +1,8 @@
 all: test simple_open
 
+clean:
+	rm -f test simple_open
+
 # test: inject hwpoison on filecache. In order to know the physical address
 # of dirty pagecache, this program forks and child process mmap()s the target
 # file. Roughly this program do the following:
@@ -8,7 +11,7 @@ all: test simple_open
 #  - Parent process does read/write/fsync to check if error handling was
 #    correctly done.
 test: test.c
-	gcc -o $@ $< -lpginfo
+	gcc -o $@ $<
 
 # make alltest: runs all testcases. do_testN.sh are wrapper scripts
 # using test.c program defined above. Basically they do the following:

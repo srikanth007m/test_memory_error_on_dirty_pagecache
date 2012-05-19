@@ -2,6 +2,7 @@
  * Usage: ./test filename flag nrpages
  * flag = 0 // parent read() after hwpoison injection
  * flag = 1 // parent fsync() after hwpoison injection
+ * flag = 2 // parent write() after hwpoison injection
  * pages: nr of pages (only 1 or 2 are supported now.)
  */
 #include <stdio.h>
@@ -97,6 +98,13 @@ int main(int argc, char *argv[]) {
 			ret = pread(fd, rbuf, nrpages * PS, 0);
 			printf("parent read after hwpoison %d [%c,%c]\n",
 			       ret, rbuf[0],rbuf[PS]);
+			if (ret < 0)
+				perror("read");
+			ret = pread(fd, rbuf, nrpages * PS, 0);
+			printf("parent read after hwpoison %d [%c,%c]\n",
+			       ret, rbuf[0],rbuf[PS]);
+			if (ret < 0)
+				perror("read");
 		} else if (flag == 1) {
 			ret = fsync(fd);
 			printf("parent fsync after hwpoison [ret %d]\n", ret);
@@ -106,6 +114,17 @@ int main(int argc, char *argv[]) {
 			printf("parent fsync after hwpoison [ret %d]\n", ret);
 			if (ret)
 				perror("fsync");
+		} else if (flag == 2) {
+			sprintf(wbuf, "%d", strtol(rbuf, NULL, 10) + 1);
+			sprintf(wbuf+PS, "%d", strtol(rbuf, NULL, 10) + 1);
+			ret = pwrite(fd, wbuf, nrpages * PS, 0);
+			printf("parent write after hwpoison %d\n", ret);
+			if (ret < 0)
+				perror("write");
+			ret = pwrite(fd, wbuf, nrpages * PS, 0);
+			printf("parent write after hwpoison %d\n", ret);
+			if (ret < 0)
+				perror("write");
 		}
 	}
 	put_semaphore(sem, &sembuf);
