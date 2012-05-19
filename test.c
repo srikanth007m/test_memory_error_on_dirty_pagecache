@@ -1,5 +1,5 @@
 /*
- * Usage: ./user5 filename flag nrpages
+ * Usage: ./test filename flag nrpages
  * flag = 0 // parent read() after hwpoison injection
  * flag = 1 // parent fsync() after hwpoison injection
  * pages: nr of pages (only 1 or 2 are supported now.)
