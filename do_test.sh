@@ -1,17 +1,19 @@
 #!/bin/bash
 
-# Testing
-#  - prepare a text file (written '0' in the initial state)
-#  - fork
-#  - parent process open the file and dirty it (write '1')
-#  - child process open and mmap the file and inject hwpoison
-#  - parent check the file content with read()
-
 tmpf=`mktemp`
 fail=0
 
 [ $# -ne 5 ] && \
-    echo "Usage: `dirname $BASH_SOURCE` file nrpages expected accesstype onerror" \
+    echo "Usage: `basename $BASH_SOURCE` file nrpages expected accesstype onerror
+
+  file       : the name of target file
+  nrpages    : # of pages to be loaded onto pagecache (1 or 2)
+  expected   : whether this testcases should succeed or fail (\"success\" or \"fail\")
+  accesstype : access type of parent's access after error injection.
+               one of read/writefull/writepart/fsync/mmapread/mmapwrite
+  onerror    : whether the parent's access after error injection is on
+               error page or not. (\"onerror\" or \"offerror\")
+" \
     && exit 1
 
 testf=$1
@@ -42,4 +44,4 @@ else
 fi
 
 rm -f $tmpf $testf
-# exit $fail
+exit $fail
