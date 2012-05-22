@@ -73,7 +73,7 @@ int main(int argc, char *argv[]) {
 			get_pagestat(p+PS, &pgstat);
 		}
 		printf("child hwpoison to vaddr %p\n", p);
-		madvise(p, PS, 100); /* hwpoison */
+		madvise(&p[0], PS, 100); /* hwpoison */
 		put_semaphore(sem, &sembuf);
 		get_semaphore(sem, &sembuf);
 		puts("child terminated");
@@ -84,8 +84,7 @@ int main(int argc, char *argv[]) {
 		puts("parent dirty");
 		usleep(1000);
 		pread(fd, rbuf, nrpages * PS, 0);
-		sprintf(wbuf, "%d", strtol(rbuf, NULL, 10) + 1);
-		sprintf(wbuf+PS, "%d", strtol(rbuf, NULL, 10) + 1);
+		memset(wbuf, 49, nrpages * PS);
 		pwrite(fd, wbuf, nrpages * PS, 0);
 		ret = pread(fd, rbuf, nrpages * PS, 0);
 		printf("parent second read (after dirty) %d [%c,%c]\n",
@@ -97,12 +96,12 @@ int main(int argc, char *argv[]) {
 		if (flag == 0) {
 			ret = pread(fd, rbuf, nrpages * PS, 0);
 			printf("parent read after hwpoison %d [%c,%c]\n",
-			       ret, rbuf[0],rbuf[PS]);
+			       ret, rbuf[0], rbuf[PS]);
 			if (ret < 0)
 				perror("read");
 			ret = pread(fd, rbuf, nrpages * PS, 0);
 			printf("parent read after hwpoison %d [%c,%c]\n",
-			       ret, rbuf[0],rbuf[PS]);
+			       ret, rbuf[0], rbuf[PS]);
 			if (ret < 0)
 				perror("read");
 		} else if (flag == 1) {
@@ -115,8 +114,7 @@ int main(int argc, char *argv[]) {
 			if (ret)
 				perror("fsync");
 		} else if (flag == 2) {
-			sprintf(wbuf, "%d", strtol(rbuf, NULL, 10) + 1);
-			sprintf(wbuf+PS, "%d", strtol(rbuf, NULL, 10) + 1);
+			memset(wbuf, 50, nrpages * PS);
 			ret = pwrite(fd, wbuf, nrpages * PS, 0);
 			printf("parent write after hwpoison %d\n", ret);
 			if (ret < 0)

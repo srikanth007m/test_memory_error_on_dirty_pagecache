@@ -24,7 +24,7 @@ ret=$?
 [ $ret -eq 0 ] && fail=$((fail + 1)) && \
     echo "FAIL ($ret): parent silently discarded the dirty pagecache" 
 
-cat $testf > /dev/null
+cat $testf # > /dev/null
 ret=$?
 [ $ret -ne 0 ] && fail=$((fail + 1)) && \
     echo "FAIL ($ret): cat should succeed because AS_EHWPOISON should be cleared." 
