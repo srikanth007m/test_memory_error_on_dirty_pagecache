@@ -20,37 +20,49 @@ test: test.c
 #  - test.c dirty the text file, inject hwpoison and check read(), write()
 #    fsync() works correctly after error handling.
 #  - check it worked expectedly by checking returned codes of test.c
-alltest: test1 test2 test3
+alltest: test1 test2
 
 # Load only one page of the file data into pagecache, this testcase check
 # cornercase where fsync() doesn't check the mapping->flags to be fixed.
-test1: test1a test1b test1c
+test1: test_1p_rd test_1p_wrf test_1p_wrp test_1p_fsf test_1p_mrd test_1p_mwr
 
-test1a: test
-	bash do_test1.sh ./test.txt 1 0
-test1b: test
-	bash do_test1.sh ./test.txt 1 1
-test1c: test
-	bash do_test1.sh ./test.txt 1 2
+test_1p_rd: test
+	bash do_test.sh ./test.txt 1 fail    read       onerror
+test_1p_wrf: test
+	bash do_test.sh ./test.txt 1 succeed writefull  onerror
+test_1p_wrp: test
+	bash do_test.sh ./test.txt 1 fail    writepart  onerror
+test_1p_fsf: test
+	bash do_test.sh ./test.txt 1 fail    fsync      onerror
+test_1p_mrd: test
+	bash do_test.sh ./test.txt 1 fail    mmapread   onerror
+test_1p_mwr: test
+	bash do_test.sh ./test.txt 1 fail    mmapwrite  onerror
 
 # Load multiple pages of the file to pagecache.
-test2: test2a test2b test2c
+test2: test_2p_rd test_2p_wrf test_2p_wrp test_2p_fsf test_2p_mrd test_2p_mwr test_2p_rd_off test_2p_wrf_off test_2p_wrp_off test_2p_fsf_off test_2p_mrd_off test_2p_mwr_off
 
-test2a: test
-	bash do_test1.sh ./text.txt 2 0
-test2b: test
-	bash do_test1.sh ./text.txt 2 1
-test2c: test
-	bash do_test1.sh ./text.txt 2 2
-
-# This testcase runs another process who opens the test file. We expect to
-# confirm that clearing AS_HWPOISON is defered until all process opening the
-# target file cloes it, and until then another open() is blocked.
-test3: test3a test3b test3c
-
-test3a: test simple_open
-	bash do_test2.sh ./test.txt 2 0
-test3b: test simple_open
-	bash do_test2.sh ./test.txt 2 1
-test3c: test simple_open
-	bash do_test2.sh ./test.txt 2 2
+test_2p_rd: test
+	bash do_test.sh ./test.txt 2 fail    read       onerror
+test_2p_wrf: test
+	bash do_test.sh ./test.txt 2 succeed writefull  onerror
+test_2p_wrp: test
+	bash do_test.sh ./test.txt 2 fail    writepart  onerror
+test_2p_fsf: test
+	bash do_test.sh ./test.txt 2 fail    fsync      onerror
+test_2p_mrd: test
+	bash do_test.sh ./test.txt 2 fail    mmapread   onerror
+test_2p_mwr: test
+	bash do_test.sh ./test.txt 2 fail    mmapwrite  onerror
+test_2p_rd_off: test
+	bash do_test.sh ./test.txt 2 succeed read       offerror
+test_2p_wrf_off: test
+	bash do_test.sh ./test.txt 2 succeed writefull  offerror
+test_2p_wrp_off: test
+	bash do_test.sh ./test.txt 2 succeed writepart  offerror
+test_2p_fsf_off: test
+	bash do_test.sh ./test.txt 2 succeed fsync      offerror
+test_2p_mrd_off: test
+	bash do_test.sh ./test.txt 2 succeed mmapread   offerror
+test_2p_mwr_off: test
+	bash do_test.sh ./test.txt 2 succeed mmapwrite  offerror

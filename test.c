@@ -1,8 +1,12 @@
+#define _GNU_SOURCE
 /*
  * Usage: ./test filename flag nrpages
  * flag = 0 // parent read() after hwpoison injection
- * flag = 1 // parent fsync() after hwpoison injection
- * flag = 2 // parent write() after hwpoison injection
+ * flag = 1 // parent write() after hwpoison injection
+ * flag = 2 // parent fsync() after hwpoison injection
+ * flag = 3 // parent open() after hwpoison injection
+ * flag = 4 // parent mmap() read after hwpoison injection
+ * flag = 5 // parent mmap() write after hwpoison injection
  * pages: nr of pages (only 1 or 2 are supported now.)
  */
 #include <stdio.h>
@@ -11,6 +15,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include <sys/types.h>
 #include <sys/ipc.h>
@@ -30,32 +35,41 @@ char wbuf[2*PS];
 int main(int argc, char *argv[]) {
 	int fd;
 	int sem;
-	int flag = 0;
 	int nrpages = 1;
 	int ret = 0;
-	char *p;
+	int tmp = 0;
+	int offset = 0;
 	char *filename;
+	char *actype;
+	char *onerror;
+	char *p;
 	pid_t pid;
 	int wait_status;
 	uint64_t pflag;
 	struct sembuf sembuf;
 	struct pagestat pgstat;
 
-	if (argc != 4) {
-		printf("Usage: %s filename flag nrpages\n", argv[0]);
+	if (argc != 5) {
+		printf("Usage: %s filename nrpages accesstype onerror\n", argv[0]);
 		exit(EXIT_FAILURE);
 	}
 	filename = argv[1];
-	flag = strtol(argv[2], NULL, 10);
-	nrpages = strtol(argv[3], NULL, 10);
-	printf("filename = %s, flag = %d, nrpages = %d\n",
-	       filename, flag, nrpages);
+	nrpages = strtol(argv[2], NULL, 10);
+	actype = argv[3];
+	onerror = argv[4];
+	printf("filename = %s, nrpages = %d, actype = %s, onerror = %s\n",
+	       filename, nrpages, actype, onerror);
+
+	if (strcmp(onerror, "onerror") == 0)
+		offset = 0;
+	else
+		offset = PS;
 
 	sem = create_and_init_semaphore();
 
 	fd = open_check(filename, O_RDWR, 0);
-	ret = pread(fd, rbuf, nrpages*PS, 0);
-	printf("parent first read %d [%c,%c]\n", ret, rbuf[0], rbuf[PS]);
+	tmp = pread(fd, rbuf, nrpages*PS, 0);
+	printf("parent first read %d [%c,%c]\n", tmp, rbuf[0], rbuf[PS]);
 
 	get_semaphore(sem, &sembuf);
 	if ((pid = fork()) == 0) {
@@ -83,46 +97,77 @@ int main(int argc, char *argv[]) {
 	} else {
 		puts("parent dirty");
 		usleep(1000);
-		pread(fd, rbuf, nrpages * PS, 0);
 		memset(wbuf, 49, nrpages * PS);
 		pwrite(fd, wbuf, nrpages * PS, 0);
-		ret = pread(fd, rbuf, nrpages * PS, 0);
+		tmp = pread(fd, rbuf, nrpages * PS, 0);
 		printf("parent second read (after dirty) %d [%c,%c]\n",
-		       ret, rbuf[0], rbuf[PS]);
+		       tmp, rbuf[0], rbuf[PS]);
 
 		put_semaphore(sem, &sembuf); /* kick child to inject error */
 		get_semaphore(sem, &sembuf); /* pagecache should be hwpoison */
 		puts("parent check");
-		if (flag == 0) {
-			ret = pread(fd, rbuf, nrpages * PS, 0);
+		if (strcmp(actype, "read") == 0) {
+			tmp = pread(fd, rbuf, PS, offset);
+			tmp = pread(fd, rbuf, PS, offset);
 			printf("parent read after hwpoison %d [%c,%c]\n",
-			       ret, rbuf[0], rbuf[PS]);
-			if (ret < 0)
+			       tmp, rbuf[0], rbuf[PS]);
+			if (tmp < 0) {
+				ret = -1;
 				perror("read");
-			ret = pread(fd, rbuf, nrpages * PS, 0);
-			printf("parent read after hwpoison %d [%c,%c]\n",
-			       ret, rbuf[0], rbuf[PS]);
-			if (ret < 0)
-				perror("read");
-		} else if (flag == 1) {
-			ret = fsync(fd);
-			printf("parent fsync after hwpoison [ret %d]\n", ret);
-			if (ret)
-				perror("fsync");
-			ret = fsync(fd);
-			printf("parent fsync after hwpoison [ret %d]\n", ret);
-			if (ret)
-				perror("fsync");
-		} else if (flag == 2) {
+			} else {
+				ret = 0;
+			}
+		} else if (strcmp(actype, "writefull") == 0) {
 			memset(wbuf, 50, nrpages * PS);
-			ret = pwrite(fd, wbuf, nrpages * PS, 0);
-			printf("parent write after hwpoison %d\n", ret);
-			if (ret < 0)
-				perror("write");
-			ret = pwrite(fd, wbuf, nrpages * PS, 0);
-			printf("parent write after hwpoison %d\n", ret);
-			if (ret < 0)
-				perror("write");
+			tmp = pwrite(fd, wbuf, PS, offset);
+			tmp = pwrite(fd, wbuf, PS, offset);
+			printf("parent write after hwpoison %d\n", tmp);
+			if (tmp < 0) {
+				ret = -1;
+				perror("writefull");
+			} else {
+				ret = 0;
+			}
+		} else if (strcmp(actype, "writepart") == 0) {
+			memset(wbuf, 50, nrpages * PS);
+			tmp = pwrite(fd, wbuf, PS / 2, offset);
+			tmp = pwrite(fd, wbuf, PS / 2, offset);
+			printf("parent write after hwpoison %d\n", tmp);
+			if (tmp < 0) {
+				ret = -1;
+				perror("writefull");
+			} else {
+				ret = 0;
+			}
+		} else if (strcmp(actype, "fsync") == 0) {
+			if (nrpages == 1) {
+				ret = fsync(fd);
+				ret = fsync(fd);
+			} else {
+				ret = sync_file_range(fd, offset, PS, SYNC_FILE_RANGE_WRITE);
+				ret = sync_file_range(fd, offset, PS, SYNC_FILE_RANGE_WRITE);
+			}
+			printf("parent fsync after hwpoison [ret %d]\n", ret);
+			if (ret)
+				perror("fsync");
+		} else if (strcmp(actype, "mmapread") == 0) {
+			/*
+			 * If mmap access failed, this program should be
+			 * terminated by segmentation fault with non-zero
+			 * returned value. So we don't set ret here.
+			 */
+			p = mmap_check((void *)REFADDR, nrpages * PS,
+				       PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+			if (p != (void *)REFADDR)
+				err("mmap");
+			printf("parent mmap() read after hwpoison [%c]\n", p[offset]);
+		} else if (strcmp(actype, "mmapwrite") == 0) {
+			p = mmap_check((void *)REFADDR, nrpages * PS,
+				       PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+			if (p != (void *)REFADDR)
+				err("mmap");
+			memset(&p[offset], 50, PS);
+			printf("parent mmap() write after hwpoison [%c]\n", p[offset]);
 		}
 	}
 	put_semaphore(sem, &sembuf);
