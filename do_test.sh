@@ -44,4 +44,5 @@ else
 fi
 
 rm -f $tmpf $testf
+page-types -b hwpoison -x -l
 exit $fail
