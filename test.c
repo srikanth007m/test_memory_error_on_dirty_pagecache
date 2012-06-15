@@ -108,6 +108,8 @@ int main(int argc, char *argv[]) {
 		puts("parent check");
 		if (strcmp(actype, "read") == 0) {
 			tmp = pread(fd, rbuf, PS, offset);
+			if (tmp < 0)
+				puts("parent first read failed.");
 			tmp = pread(fd, rbuf, PS, offset);
 			printf("parent read after hwpoison %d [%c,%c]\n",
 			       tmp, rbuf[0], rbuf[PS]);
