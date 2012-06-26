@@ -14,6 +14,9 @@ clean:
 test: test.c
 	gcc -o $@ $<
 
+test_truncate: test_truncate.c
+	gcc -o $@ $<
+
 # make alltest: runs all testcases. do_test.sh is a wrapper script
 # using test.c program defined above. Basically they do the following:
 #  - prepare a text file (assumed that it is filled with '0' in initial
@@ -71,3 +74,6 @@ test_2p_mwr_off: test
 # make test_sticky: check if the flag AS_HWPOISON is sticky after closing file.
 test_sticky: test
 	./do_test_sticky.sh ./test.txt 1
+
+test_trunc: test_truncate
+	./do_test_truncate.sh ./test.txt
