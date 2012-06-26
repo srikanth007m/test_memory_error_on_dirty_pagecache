@@ -67,3 +67,7 @@ test_2p_mrd_off: test
 	bash do_test.sh ./test.txt 2 succeed mmapread   offerror
 test_2p_mwr_off: test
 	bash do_test.sh ./test.txt 2 succeed mmapwrite  offerror
+
+# make test_sticky: check if the flag AS_HWPOISON is sticky after closing file.
+test_sticky: test
+	./do_test_sticky.sh ./test.txt 1
