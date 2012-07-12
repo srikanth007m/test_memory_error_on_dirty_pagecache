@@ -24,7 +24,8 @@ test_truncate: test_truncate.c
 #  - test.c dirties the text file, injects hwpoison, accesses the target
 #    page, and check if error handling works correctly.
 #  - check that test.c worked expectedly by checking returned codes.
-alltest: test1 test2
+#
+alltest: test1 test2 test_sticky test_trunc
 
 # Load only one page of the file data into pagecache, this testcase check
 # cornercase where fsync() doesn't check the mapping->flags to be fixed.
@@ -75,5 +76,7 @@ test_2p_mwr_off: test
 test_sticky: test
 	./do_test_sticky.sh ./test.txt 1
 
+# make test_trunc: check if the flag AS_HWPOISON is clear when affected pages
+# on the file was truncated out with truncate().
 test_trunc: test_truncate
 	./do_test_truncate.sh ./test.txt
