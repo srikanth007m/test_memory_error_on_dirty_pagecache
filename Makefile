@@ -25,7 +25,7 @@ test_truncate: test_truncate.c
 #    page, and check if error handling works correctly.
 #  - check that test.c worked expectedly by checking returned codes.
 #
-alltest: test1 test2 test_sticky test_trunc
+alltest: test1 test2 test_sticky test_trunc test_unpoison
 
 # Load only one page of the file data into pagecache, this testcase check
 # cornercase where fsync() doesn't check the mapping->flags to be fixed.
@@ -80,3 +80,7 @@ test_sticky: test
 # on the file was truncated out with truncate().
 test_trunc: test_truncate
 	./do_test_truncate.sh ./test.txt
+
+# make test_unpoison: check if a false hwpoison can unpoisonable or not.
+test_unpoison: test
+	./do_test_unpoison.sh ./test.txt
