@@ -1,3 +1,7 @@
+# Requirement: you need to compile page-types.c which is in kernel source
+# tree at tools/vm/page-types.c, and located in the PATH directories (ex.
+# /usr/local/bin/page-types.)
+
 all: test simple_open
 
 clean:
