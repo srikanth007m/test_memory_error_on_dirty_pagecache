@@ -84,3 +84,6 @@ test_trunc: test_truncate
 # make test_unpoison: check if a false hwpoison can unpoisonable or not.
 test_unpoison: test
 	./do_test_unpoison.sh ./test.txt
+
+test_multifiles: test
+	./do_test_multifiles.sh
