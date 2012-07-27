@@ -87,3 +87,6 @@ test_unpoison: test
 
 test_multifiles: test
 	./do_test_multifiles.sh
+
+test_dropcache: test
+	./do_test_dropcache.sh ./test.txt 1
