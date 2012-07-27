@@ -9,6 +9,7 @@ testf=$1
 
 ruby -e 'puts "0"*8192' > $testf
 
+corrupted1=`grep -i corrupt /proc/meminfo | tr -s ' ' | cut -f2 -d' '`
 echo "./test $testf 1 read onerror" > /dev/kmsg
 page-types -b hwpoison -x -l
 ./test $testf 1 read onerror
@@ -22,4 +23,11 @@ else
 fi
 
 rm $testf
+
+corrupted2=`grep -i corrupt /proc/meminfo | tr -s ' ' | cut -f2 -d' '`
+if [ ! "$corrupted1" = "$corrupted2" ] ; then
+    echo "FAIL: \"HardwareCorrupted:\" does not match between before/after testing ($corrupted1, $corrupted2)"
+    fail=$[fail + 1]
+fi
+
 exit $fail

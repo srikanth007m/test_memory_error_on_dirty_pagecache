@@ -8,6 +8,7 @@ testf=$1
 [ ! "$tmpf" ] && echo "tmpf is void. dangerous operation!" && exit 1
 rm -f tmp.* $testf
 
+corrupted1=`grep -i corrupt /proc/meminfo | tr -s ' ' | cut -f2 -d' '`
 ruby -e 'puts "0"*4096*3' > $testf
 echo "./test_truncate $testf 0 write" > /dev/kmsg
 ./test_truncate $testf 0 write
@@ -85,4 +86,12 @@ fi
 rm -f $testf
 
 rm -f tmp.* $testf
+page-types -b hwpoison -x
+
+corrupted2=`grep -i corrupt /proc/meminfo | tr -s ' ' | cut -f2 -d' '`
+if [ ! "$corrupted1" = "$corrupted2" ] ; then
+    echo "FAIL: \"HardwareCorrupted:\" does not match between before/after testing ($corrupted1, $corrupted2)"
+    fail=$[fail + 1]
+fi
+
 exit $fail

@@ -9,6 +9,7 @@ nrpages=$2
 [ ! "$tmpf" ] && echo "tmpf is void. dangerous operation!" && exit 1
 rm -f tmp.* $testf
 
+corrupted1=`grep -i corrupt /proc/meminfo | tr -s ' ' | cut -f2 -d' '`
 sync ; sync
 ruby -e 'puts "0"*8192' > $testf
 ls -li $testf
@@ -23,9 +24,13 @@ else
     echo "PASS: error isolation succeeded."
 fi
 
+page-types -b hwpoison -lN
+
 # disturbing inode caches to remove inode of the target file
 for i in `seq 1 10000` ; do echo 1 > ${tmpf}${i} ; done ; rm -f tmp.*
 sync ; sync ; echo 3 > /proc/sys/vm/drop_caches
+
+page-types -b hwpoison -lN
 
 # retry checking AS_HWPOISON (expected not to be blocked)
 grep ext4_inode /proc/slabinfo
@@ -37,5 +42,13 @@ else
     echo "PASS: AS_HWPOISON is sticky."
 fi
 
+page-types -b hwpoison -x -lN
 rm -f tmp.* $testf
+
+corrupted2=`grep -i corrupt /proc/meminfo | tr -s ' ' | cut -f2 -d' '`
+if [ ! "$corrupted1" = "$corrupted2" ] ; then
+    echo "FAIL: \"HardwareCorrupted:\" does not match between before/after testing ($corrupted1, $corrupted2)"
+    fail=$[fail + 1]
+fi
+
 exit $fail

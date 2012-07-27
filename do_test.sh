@@ -25,6 +25,7 @@ onerror=$5
 # echo "Prepare a text file (filled with 0)"
 ruby -e 'puts "0"*8192' > $testf
 
+corrupted1=`grep -i corrupt /proc/meminfo | tr -s ' ' | cut -f2 -d' '`
 echo "./test $testf $nrpages $actype $onerror" > /dev/kmsg
 ./test $testf $nrpages $actype $onerror
 ret=$?
@@ -44,8 +45,16 @@ else
     fi
 fi
 
+grep Corrupted /proc/meminfo
 rm -f $tmpf $testf
 page-types -b hwpoison -x -l
 ipcs -s -t | cut -f1 -d' ' | egrep '[0-9]' | xargs ipcrm sem > /dev/null 2>&1
 sync ; echo 3 > /proc/sys/vm/drop_caches
+
+corrupted2=`grep -i corrupt /proc/meminfo | tr -s ' ' | cut -f2 -d' '`
+if [ ! "$corrupted1" = "$corrupted2" ] ; then
+    echo "FAIL: \"HardwareCorrupted:\" does not match between before/after testing ($corrupted1, $corrupted2)"
+    fail=$[fail + 1]
+fi
+
 exit $fail
