@@ -29,7 +29,7 @@ test_truncate: test_truncate.c
 #    page, and check if error handling works correctly.
 #  - check that test.c worked expectedly by checking returned codes.
 #
-alltest: test1 test2 test_sticky test_trunc test_unpoison test_multifiles test_dropcache test_hardlink
+alltest: test1 test2 test_sticky test_trunc test_unpoison test_multifiles test_dropcache test_hardlink 
 
 # Load only one page of the file data into pagecache, this testcase check
 # cornercase where fsync() doesn't check the mapping->flags to be fixed.
@@ -97,3 +97,6 @@ test_dropcache: test
 
 test_hardlink: test
 	./do_test_hardlink.sh ./test.txt
+
+test_remove_opened: test test_keepopen
+	./do_test_remove_opened.sh ./test.txt
