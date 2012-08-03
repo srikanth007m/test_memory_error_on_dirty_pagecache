@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
 		exit(EXIT_FAILURE);
 	}
 	filename = argv[1];
-	offset = strtol(argv[2], NULL, 10) * PS; /* inject HWPOISON into the second page */
+	offset = strtol(argv[2], NULL, 10) * PS;
 	actype = argv[3];
 
 	printf("filename = %s, inject offset = %d, actype = %s\n",

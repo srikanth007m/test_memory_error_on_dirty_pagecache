@@ -3,6 +3,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <sys/mman.h>
 
 #include "mystd.h"
 
@@ -23,9 +24,9 @@ int close_check(int fd) {
 	return 0;
 }
 
-void *mmap_check(void *start, size_t length, int prot, int flags,
+char *mmap_check(void *start, size_t length, int prot, int flags,
 		   int fd, off_t offset) {
-        void *map = mmap(start, length, prot, flags, fd, offset);
+	char *map = mmap(start, length, prot, flags, fd, offset);
 	if (map == (void*)-1L)
                 err("mmap");
         return map;

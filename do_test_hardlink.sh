@@ -5,6 +5,7 @@ fail=0
 
 testf=$1
 
+[ $# -ne 1 ] && echo "Usage: `basename $BASH_SOURCE` filename" && exit 1
 rm -f tmp.* $testf
 
 corrupted1=`grep -i corrupt /proc/meminfo | tr -s ' ' | cut -f2 -d' '`
