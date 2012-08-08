@@ -1,14 +1,4 @@
 #define _GNU_SOURCE
-/*
- * Usage: ./test filename flag nrpages
- * flag = 0 // parent read() after hwpoison injection
- * flag = 1 // parent write() after hwpoison injection
- * flag = 2 // parent fsync() after hwpoison injection
- * flag = 3 // parent open() after hwpoison injection
- * flag = 4 // parent mmap() read after hwpoison injection
- * flag = 5 // parent mmap() write after hwpoison injection
- * pages: nr of pages (only 1 or 2 are supported now.)
- */
 #include <stdio.h>
 #include <signal.h>
 #include <sys/mman.h>
