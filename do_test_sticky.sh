@@ -27,7 +27,7 @@ fi
 page-types -b hwpoison -lN
 
 # disturbing inode caches to remove inode of the target file
-for i in `seq 1 10000` ; do echo 1 > ${tmpf}${i} ; done ; rm -f tmp.*
+for i in `seq 1 1000` ; do echo 1 > ${tmpf}${i} ; done ; rm -f tmp.*
 sync ; sync ; echo 3 > /proc/sys/vm/drop_caches
 
 page-types -b hwpoison -lN
