@@ -132,16 +132,21 @@ int main(int argc, char *argv[]) {
 				ret = 0;
 			}
 		} else if (strcmp(actype, "fsync") == 0) {
-			if (nrpages == 1) {
-				ret = fsync(fd);
-				ret = fsync(fd);
-			} else {
-				ret = sync_file_range(fd, offset, PS, SYNC_FILE_RANGE_WRITE);
-				ret = sync_file_range(fd, offset, PS, SYNC_FILE_RANGE_WRITE);
-			}
+			ret = fsync(fd);
+			ret = fsync(fd);
 			printf("parent fsync after hwpoison [ret %d]\n", ret);
 			if (ret)
 				perror("fsync");
+		} else if (strcmp(actype, "sync_range_write") == 0) {
+			ret = sync_file_range(fd, offset, PS, SYNC_FILE_RANGE_WRITE);
+			ret = sync_file_range(fd, offset, PS, SYNC_FILE_RANGE_WRITE);
+			if (ret)
+				perror("sync_range_write");
+		} else if (strcmp(actype, "sync_range_wait") == 0) {
+			ret = sync_file_range(fd, offset, PS, SYNC_FILE_RANGE_WAIT_BEFORE);
+			ret = sync_file_range(fd, offset, PS, SYNC_FILE_RANGE_WAIT_BEFORE);
+			if (ret)
+				perror("sync_range_wait");
 		} else if (strcmp(actype, "mmapread") == 0) {
 			/*
 			 * If mmap access failed, this program should be

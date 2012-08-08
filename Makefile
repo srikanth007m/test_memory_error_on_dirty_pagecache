@@ -29,52 +29,64 @@ test_truncate: test_truncate.c
 #    page, and check if error handling works correctly.
 #  - check that test.c worked expectedly by checking returned codes.
 #
-alltest: test1 test2 test_sticky test_trunc test_unpoison test_multifiles test_dropcache test_hardlink 
+alltest: test1 test2 test_sticky test_trunc test_unpoison test_multifiles test_dropcache test_hardlink
 
 # Load only one page of the file data into pagecache, this testcase check
 # cornercase where fsync() doesn't check the mapping->flags to be fixed.
-test1: test_1p_rd test_1p_wrf test_1p_wrp test_1p_fsf test_1p_mrd test_1p_mwr
+test1: test_1p_rd test_1p_wrf test_1p_wrp test_1p_fsf test_1p_swr test_1p_swa test_1p_mrd test_1p_mwr
 
 test_1p_rd: test
-	bash do_test.sh ./test.txt 1 fail    read       onerror
-test_1p_wrf: test
-	bash do_test.sh ./test.txt 1 succeed writefull  onerror
-test_1p_wrp: test
-	bash do_test.sh ./test.txt 1 fail    writepart  onerror
-test_1p_fsf: test
-	bash do_test.sh ./test.txt 1 fail    fsync      onerror
-test_1p_mrd: test
-	bash do_test.sh ./test.txt 1 fail    mmapread   onerror
-test_1p_mwr: test
-	bash do_test.sh ./test.txt 1 fail    mmapwrite  onerror
+	bash do_test.sh ./test.txt 1 fail    read              onerror
+test_1p_wrf: test				             
+	bash do_test.sh ./test.txt 1 succeed writefull         onerror
+test_1p_wrp: test				             
+	bash do_test.sh ./test.txt 1 fail    writepart         onerror
+test_1p_fsf: test				             
+	bash do_test.sh ./test.txt 1 fail    fsync             onerror
+test_1p_swr: test				             
+	bash do_test.sh ./test.txt 1 succeed sync_range_write  onerror
+test_1p_swa: test				             
+	bash do_test.sh ./test.txt 1 fail    sync_range_wait   onerror
+test_1p_mrd: test				             
+	bash do_test.sh ./test.txt 1 fail    mmapread          onerror
+test_1p_mwr: test				             
+	bash do_test.sh ./test.txt 1 fail    mmapwrite         onerror
 
 # Load multiple pages of the file to pagecache.
-test2: test_2p_rd test_2p_wrf test_2p_wrp test_2p_fsf test_2p_mrd test_2p_mwr test_2p_rd_off test_2p_wrf_off test_2p_wrp_off test_2p_fsf_off test_2p_mrd_off test_2p_mwr_off
+test2: test_2p_rd test_2p_wrf test_2p_wrp test_2p_fsf test_2p_swr test_2p_swa test_2p_mrd test_2p_mwr test_2p_rd_off test_2p_wrf_off test_2p_wrp_off test_2p_fsf_offtest_2p_swr_off test_2p_swa_off test_2p_mrd_off test_2p_mwr_off
 
 test_2p_rd: test
-	bash do_test.sh ./test.txt 2 fail    read       onerror
+	bash do_test.sh ./test.txt 2 fail    read              onerror
 test_2p_wrf: test
-	bash do_test.sh ./test.txt 2 succeed writefull  onerror
+	bash do_test.sh ./test.txt 2 succeed writefull         onerror
 test_2p_wrp: test
-	bash do_test.sh ./test.txt 2 fail    writepart  onerror
+	bash do_test.sh ./test.txt 2 fail    writepart         onerror
 test_2p_fsf: test
-	bash do_test.sh ./test.txt 2 fail    fsync      onerror
+	bash do_test.sh ./test.txt 2 fail    fsync             onerror
+test_2p_swr: test
+	bash do_test.sh ./test.txt 2 succeed sync_range_write  onerror
+test_2p_swa: test
+	bash do_test.sh ./test.txt 2 fail    sync_range_wait   onerror
 test_2p_mrd: test
-	bash do_test.sh ./test.txt 2 fail    mmapread   onerror
+	bash do_test.sh ./test.txt 2 fail    mmapread          onerror
 test_2p_mwr: test
-	bash do_test.sh ./test.txt 2 fail    mmapwrite  onerror
+	bash do_test.sh ./test.txt 2 fail    mmapwrite         onerror
 test_2p_rd_off: test
-	bash do_test.sh ./test.txt 2 succeed read       offerror
+	bash do_test.sh ./test.txt 2 succeed read              offerror
 test_2p_wrf_off: test
-	bash do_test.sh ./test.txt 2 succeed writefull  offerror
+	bash do_test.sh ./test.txt 2 succeed writefull         offerror
 test_2p_wrp_off: test
-	bash do_test.sh ./test.txt 2 succeed writepart  offerror
+	bash do_test.sh ./test.txt 2 succeed writepart         offerror
 test_2p_fsf_off: test
-	bash do_test.sh ./test.txt 2 succeed fsync      offerror
+	bash do_test.sh ./test.txt 2 succeed fsync             offerror
+test_2p_swr_off: test
+	bash do_test.sh ./test.txt 2 succeed sync_range_write  offerror
+test_2p_swa_off: test
+	bash do_test.sh ./test.txt 2 succeed sync_range_wait   offerror
 test_2p_mrd_off: test
-	bash do_test.sh ./test.txt 2 succeed mmapread   offerror
+	bash do_test.sh ./test.txt 2 succeed mmapread          offerror
 test_2p_mwr_off: test
-	bash do_test.sh ./test.txt 2 succeed mmapwrite  offerror
+	bash do_test.sh ./test.txt 2 succeed mmapwrite         offerror
 
 # make test_sticky: check if the flag AS_HWPOISON is sticky after closing file.
 test_sticky: test
@@ -100,3 +112,9 @@ test_hardlink: test
 
 test_remove_opened: test test_keepopen
 	./do_test_remove_opened.sh ./test.txt
+
+tmp_test_fsync_more: tmp_test_fsync_more.c
+	gcc -o $@ $<
+
+tmp_do_test_fsync_more: tmp_test_fsync_more
+	./tmp_do_test_fsync_more.sh ./test.txt
