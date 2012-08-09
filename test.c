@@ -21,6 +21,7 @@
 
 char rbuf[2*PS];
 char wbuf[2*PS];
+int debug = 0;
 
 int main(int argc, char *argv[]) {
 	int fd;
@@ -29,6 +30,7 @@ int main(int argc, char *argv[]) {
 	int ret = 0;
 	int tmp = 0;
 	int offset = 0;
+	char c;
 	char *filename;
 	char *actype;
 	char *onerror;
@@ -47,7 +49,7 @@ int main(int argc, char *argv[]) {
 	nrpages = strtol(argv[2], NULL, 10);
 	actype = argv[3];
 	onerror = argv[4];
-	printf("filename = %s, nrpages = %d, actype = %s, onerror = %s\n",
+	DEB("filename = %s, nrpages = %d, actype = %s, onerror = %s\n",
 	       filename, nrpages, actype, onerror);
 
 	if (strcmp(onerror, "onerror") == 0)
@@ -59,7 +61,7 @@ int main(int argc, char *argv[]) {
 
 	fd = open_check(filename, O_RDWR, 0);
 	tmp = pread(fd, rbuf, nrpages*PS, 0);
-	printf("parent first read %d [%c,%c]\n", tmp, rbuf[0], rbuf[PS]);
+	DEB("parent first read %d [%c,%c]\n", tmp, rbuf[0], rbuf[PS]);
 
 	get_semaphore(sem, &sembuf);
 	if ((pid = fork()) == 0) {
@@ -69,39 +71,43 @@ int main(int argc, char *argv[]) {
 		if (p != (void *)REFADDR)
 			err("mmap");
 		if (nrpages == 1) {
-			printf("child read (after dirty) [%c]\n", p[0]);
+			DEB("child read (after dirty) [%c]\n", p[0]);
+#ifdef DEBUG
 			get_pagestat(p, &pgstat);
+#endif
 		} else {
-			printf("child read (after dirty) [%c,%c]\n", p[0], p[PS]);
+			DEB("child read (after dirty) [%c,%c]\n", p[0], p[PS]);
+#ifdef DEBUG
 			get_pagestat(p, &pgstat);
 			get_pagestat(p+PS, &pgstat);
+#endif
 		}
-		printf("child hwpoison to vaddr %p\n", p);
+		DEB("child hwpoison to vaddr %p\n", p);
 		madvise(&p[0], PS, 100); /* hwpoison */
 		put_semaphore(sem, &sembuf);
 		get_semaphore(sem, &sembuf);
-		puts("child terminated");
+		DEB("child terminated\n");
 		put_semaphore(sem, &sembuf);
 		get_pflags(pgstat.pfn, &pflag, 1);
 		exit(EXIT_SUCCESS);
 	} else {
-		puts("parent dirty");
+		DEB("parent dirty\n");
 		usleep(1000);
 		memset(wbuf, 49, nrpages * PS);
 		pwrite(fd, wbuf, nrpages * PS, 0);
 		tmp = pread(fd, rbuf, nrpages * PS, 0);
-		printf("parent second read (after dirty) %d [%c,%c]\n",
+		DEB("parent second read (after dirty) %d [%c,%c]\n",
 		       tmp, rbuf[0], rbuf[PS]);
 
 		put_semaphore(sem, &sembuf); /* kick child to inject error */
 		get_semaphore(sem, &sembuf); /* pagecache should be hwpoison */
-		puts("parent check");
+		DEB("parent check\n");
 		if (strcmp(actype, "read") == 0) {
 			tmp = pread(fd, rbuf, PS, offset);
 			if (tmp < 0)
-				puts("parent first read failed.");
+				DEB("parent first read failed.\n");
 			tmp = pread(fd, rbuf, PS, offset);
-			printf("parent read after hwpoison %d [%c,%c]\n",
+			DEB("parent read after hwpoison %d [%c,%c]\n",
 			       tmp, rbuf[0], rbuf[PS]);
 			if (tmp < 0) {
 				ret = -1;
@@ -113,7 +119,7 @@ int main(int argc, char *argv[]) {
 			memset(wbuf, 50, nrpages * PS);
 			tmp = pwrite(fd, wbuf, PS, offset);
 			tmp = pwrite(fd, wbuf, PS, offset);
-			printf("parent write after hwpoison %d\n", tmp);
+			DEB("parent write after hwpoison %d\n", tmp);
 			if (tmp < 0) {
 				ret = -1;
 				perror("writefull");
@@ -124,7 +130,7 @@ int main(int argc, char *argv[]) {
 			memset(wbuf, 50, nrpages * PS);
 			tmp = pwrite(fd, wbuf, PS / 2, offset);
 			tmp = pwrite(fd, wbuf, PS / 2, offset);
-			printf("parent write after hwpoison %d\n", tmp);
+			DEB("parent write after hwpoison %d\n", tmp);
 			if (tmp < 0) {
 				ret = -1;
 				perror("writefull");
@@ -134,7 +140,7 @@ int main(int argc, char *argv[]) {
 		} else if (strcmp(actype, "fsync") == 0) {
 			ret = fsync(fd);
 			ret = fsync(fd);
-			printf("parent fsync after hwpoison [ret %d]\n", ret);
+			DEB("parent fsync after hwpoison [ret %d]\n", ret);
 			if (ret)
 				perror("fsync");
 		} else if (strcmp(actype, "sync_range_write") == 0) {
@@ -157,14 +163,15 @@ int main(int argc, char *argv[]) {
 				       PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
 			if (p != (void *)REFADDR)
 				err("mmap");
-			printf("parent mmap() read after hwpoison [%c]\n", p[offset]);
+			c = p[offset];
+			DEB("parent mmap() read after hwpoison [%c]\n", p[offset]);
 		} else if (strcmp(actype, "mmapwrite") == 0) {
 			p = mmap_check((void *)REFADDR, nrpages * PS,
 				       PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
 			if (p != (void *)REFADDR)
 				err("mmap");
 			memset(&p[offset], 50, PS);
-			printf("parent mmap() write after hwpoison [%c]\n", p[offset]);
+			DEB("parent mmap() write after hwpoison [%c]\n", p[offset]);
 		}
 	}
 	put_semaphore(sem, &sembuf);
@@ -174,6 +181,6 @@ int main(int argc, char *argv[]) {
 		err("waitpid");
 
 	delete_semaphore(sem);
-	printf("parent exit %d.\n", ret);
+	DEB("parent exit %d.\n", ret);
 	return ret;
 }

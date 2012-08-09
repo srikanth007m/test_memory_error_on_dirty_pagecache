@@ -1,3 +1,5 @@
+DEBUG=
+
 # Requirement: you need to compile page-types.c which is in kernel source
 # tree at tools/vm/page-types.c, and located in the PATH directories (ex.
 # /usr/local/bin/page-types.)
@@ -16,10 +18,10 @@ clean:
 #  - Parent process accesses to the pagecache to check if error handling was
 #    correctly done. Access type should be given by the caller.
 test: test.c
-	gcc -o $@ $<
+	gcc -o $@ $< ${DEBUG}
 
 test_truncate: test_truncate.c
-	gcc -o $@ $<
+	gcc -o $@ $< ${DEBUG}
 
 # make alltest: runs all testcases. do_test.sh is a wrapper script
 # using test.c program defined above. Basically they do the following:
@@ -53,7 +55,7 @@ test_1p_mwr: test
 	bash do_test.sh ./test.txt 1 fail    mmapwrite         onerror
 
 # Load multiple pages of the file to pagecache.
-test2: test_2p_rd test_2p_wrf test_2p_wrp test_2p_fsf test_2p_swr test_2p_swa test_2p_mrd test_2p_mwr test_2p_rd_off test_2p_wrf_off test_2p_wrp_off test_2p_fsf_offtest_2p_swr_off test_2p_swa_off test_2p_mrd_off test_2p_mwr_off
+test2: test_2p_rd test_2p_wrf test_2p_wrp test_2p_fsf test_2p_swr test_2p_swa test_2p_mrd test_2p_mwr test_2p_rd_off test_2p_wrf_off test_2p_wrp_off test_2p_swr_off test_2p_swa_off test_2p_mrd_off test_2p_mwr_off
 
 test_2p_rd: test
 	bash do_test.sh ./test.txt 2 fail    read              onerror
@@ -77,8 +79,6 @@ test_2p_wrf_off: test
 	bash do_test.sh ./test.txt 2 succeed writefull         offerror
 test_2p_wrp_off: test
 	bash do_test.sh ./test.txt 2 succeed writepart         offerror
-test_2p_fsf_off: test
-	bash do_test.sh ./test.txt 2 succeed fsync             offerror
 test_2p_swr_off: test
 	bash do_test.sh ./test.txt 2 succeed sync_range_write  offerror
 test_2p_swa_off: test
@@ -112,9 +112,3 @@ test_hardlink: test
 
 test_remove_opened: test test_keepopen
 	./do_test_remove_opened.sh ./test.txt
-
-tmp_test_fsync_more: tmp_test_fsync_more.c
-	gcc -o $@ $<
-
-tmp_do_test_fsync_more: tmp_test_fsync_more
-	./tmp_do_test_fsync_more.sh ./test.txt

@@ -22,7 +22,6 @@ rm -f $testf
 pkill -SIGUSR1 test_keepopen
 wait $pid
 ret=$?
-echo "returnd $ret from pid $pid"
 if [ $ret -eq 1 ] ; then
     echo "PASS: access get EHWPOISON even if it's removed."
 else
@@ -30,10 +29,10 @@ else
     fail=$[fail+1]
 fi
 
-file $testf
+file $testf > /dev/null
 
 rm -f ${testf}*
-page-types -b hwpoison -x -lN
+page-types -b hwpoison -x -lN > /dev/null
 
 corrupted2=`grep -i corrupt /proc/meminfo | tr -s ' ' | cut -f2 -d' '`
 if [ ! "$corrupted1" = "$corrupted2" ] ; then

@@ -11,9 +11,9 @@ ruby -e 'puts "0"*8192' > $testf
 
 corrupted1=`grep -i corrupt /proc/meminfo | tr -s ' ' | cut -f2 -d' '`
 echo "./test $testf 1 read onerror" > /dev/kmsg
-page-types -b hwpoison -x -l
+page-types -b hwpoison -x -l > /dev/null
 ./test $testf 1 read onerror
-page-types -b hwpoison -x -l
+page-types -b hwpoison -x -l > /dev/null
 cat $testf > /dev/null
 if [ $? -eq 0 ] ; then
     echo "PASS: unpoison succeeded."

@@ -54,14 +54,14 @@ int main(int argc, char *argv[]) {
 	offset = strtol(argv[2], NULL, 10) * PS;
 	actype = argv[3];
 
-	printf("filename = %s, inject offset = %d, actype = %s\n",
+	DEB("filename = %s, inject offset = %d, actype = %s\n",
 	       filename, offset, actype);
 
 	sem = create_and_init_semaphore();
 
 	fd = open_check(filename, O_RDWR, 0);
 	tmp = pread(fd, rbuf, nrpages*PS, 0);
-	printf("parent first read %d [%c,%c,%c]\n",
+	DEB("parent first read %d [%c,%c,%c]\n",
 	       tmp, rbuf[0], rbuf[PS], rbuf[2*PS]);
 
 	get_semaphore(sem, &sembuf);
@@ -71,36 +71,38 @@ int main(int argc, char *argv[]) {
 			       PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
 		if (p != (void *)REFADDR)
 			err("mmap");
-		printf("child read (after dirty) [%c,%c,%c]\n", p[0], p[PS], p[2*PS]);
+		DEB("child read (after dirty) [%c,%c,%c]\n", p[0], p[PS], p[2*PS]);
+#ifdef DEBUG
 		get_pagestat(p, &pgstat);
 		get_pagestat(p+PS, &pgstat);
 		get_pagestat(p+2*PS, &pgstat);
-		printf("child hwpoison to vaddr %p\n", p+offset);
+#endif
+		DEB("child hwpoison to vaddr %p\n", p+offset);
 		madvise(&p[offset], PS, 100); /* hwpoison */
 		put_semaphore(sem, &sembuf);
 		get_semaphore(sem, &sembuf);
-		puts("child terminated");
+		DEB("child terminated\n");
 		put_semaphore(sem, &sembuf);
 		get_pflags(pgstat.pfn, &pflag, 1);
 		exit(EXIT_SUCCESS);
 	} else {
-		puts("parent dirty");
+		DEB("parent dirty\n");
 		usleep(1000);
 		memset(wbuf, 49, nrpages * PS);
 		pwrite(fd, wbuf, nrpages * PS, 0);
 		tmp = pread(fd, rbuf, nrpages * PS, 0);
-		printf("parent second read (after dirty) %d [%c,%c,%c]\n",
+		DEB("parent second read (after dirty) %d [%c,%c,%c]\n",
 		       tmp, rbuf[0], rbuf[PS], rbuf[2*PS]);
 
 		put_semaphore(sem, &sembuf); /* kick child to inject error */
 		get_semaphore(sem, &sembuf); /* pagecache should be hwpoison */
-		puts("parent check");
+		DEB("parent check\n");
 
 		/* trucate at offset PS*3/2 */
 		if (ftruncate(fd, PS*3/2)) {
 			perror("ftruncate");
 		} else {
-			printf("ftruncate succeeded.\n");
+			DEB("ftruncate succeeded.\n");
 		}
 
 		if (strcmp(actype, "read") == 0) {
@@ -132,6 +134,6 @@ int main(int argc, char *argv[]) {
 		err("waitpid");
 
 	delete_semaphore(sem);
-	printf("parent exit %d.\n", ret);
+	DEB("parent exit %d.\n", ret);
 	return ret;
 }

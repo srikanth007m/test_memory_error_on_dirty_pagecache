@@ -86,7 +86,7 @@ fi
 rm -f $testf
 
 rm -f tmp.* $testf
-page-types -b hwpoison -x
+page-types -b hwpoison -x > /dev/null
 
 corrupted2=`grep -i corrupt /proc/meminfo | tr -s ' ' | cut -f2 -d' '`
 if [ ! "$corrupted1" = "$corrupted2" ] ; then

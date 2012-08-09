@@ -45,9 +45,9 @@ else
     fi
 fi
 
-grep Corrupted /proc/meminfo
+[ "$DEBUG" ] && grep Corrupted /proc/meminfo
 rm -f $tmpf $testf
-page-types -b hwpoison -x -l
+page-types -b hwpoison -x -l > /dev/null
 ipcs -s -t | cut -f1 -d' ' | egrep '[0-9]' | xargs ipcrm sem > /dev/null 2>&1
 sync ; echo 3 > /proc/sys/vm/drop_caches
 
